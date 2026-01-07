@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>AI解説付きページ</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; }
+        .ai-section { background: #f9f9f9; border-left: 5px solid #3498db; padding: 20px; margin-top: 30px; }
+        textarea { width: 100%; height: 100px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; padding: 10px; }
+        #ai-response { white-space: pre-wrap; background: #eee; padding: 15px; border-radius: 5px; display: none; margin-top: 15px; }
+        #loading { color: #3498db; font-weight: bold; margin-top: 10px; }
+        button { background: #3498db; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; }
+        button:hover { background-color: #2980b9; }
+    </style>
+</head>
+<body>
+
+    <h1>解説ページ</h1>
+    <p>分散とは、データのバラつきを平方和の平均で表したものです...</p>
+
+    <div class="ai-section">
+        <h3>🤖 Gemini AIに質問する</h3>
+        <p>この解説で分からない部分を具体的に聞いてみてください。</p>
+        <textarea id="userQuestion" placeholder="例：なぜ分散は2乗するのですか？"></textarea>
+        <br>
+        <button onclick="askAI()">AIに聞く</button>
+        
+        <div id="loading" style="display:none;">AIが思考中...</div>
+        <div id="ai-response"></div>
+    </div>
+
+    <script>
+        async function askAI() {
+            // あなたのAPIキーを入力してください
+            const API_KEY = "AIzaSyBxetJARXwhao3-4V5Co2DbH359R1zrqwA"; 
+            // 「gemini-2.0-flash」を指定します。これがあなたのリストで一番上にあった有効なモデルです。
+            // 「gemini-flash-latest」を指定します。これが現在のv1betaで最も推奨される書き方です。
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${API_KEY}`;
+            const question = document.getElementById("userQuestion").value;
+            const responseDiv = document.getElementById("ai-response");
+            const loadingDiv = document.getElementById("loading");
+
+            if (!question) {
+                alert("質問を入力してください");
+                return;
+            }
+
+            loadingDiv.style.display = "block";
+            responseDiv.style.display = "none";
+
+            const data = {
+                contents: [{
+                    parts: [{ text: `あなたは統計学の専門家です。以下の質問にわかりやすく答えてください：${question}` }]
+                }]
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                
+                if (result.candidates && result.candidates[0] && result.candidates[0].content) {
+                    const aiText = result.candidates[0].content.parts[0].text;
+                    responseDiv.innerText = aiText;
+                    responseDiv.style.display = "block";
+                } else if (result.error) {
+                    // 429エラーなどの具体的な理由を表示する
+                    alert("AIからのエラーメッセージ: " + result.error.message);
+                    console.error("API Error:", result.error);
+                } else {
+                    alert("予期せぬ応答形式です。コンソールを確認してください。");
+                    console.log("Full Result:", result);
+                }
+
+            } catch (error) {
+                console.error("Error:", error);
+                alert("AIとの通信に失敗しました。APIキーが正しいか、ネットワーク設定を確認してください。");
+            } finally {
+                loadingDiv.style.display = "none";
+            }
+        }
+    </script>
+</body>
+</html>
